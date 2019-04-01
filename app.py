@@ -5,7 +5,7 @@ Server = "DESKTOP-OON9QKV"
 user = "8021"
 password = "8021"
 database = "ResearchData"
-engine = "mssql+pyodbc://8021:8021@" + Server + "/ResearchData?driver=SQL+Server+Native+Client+11.0"
+engine = "mssql+pyodbc://" + user + ":" + password + "@" + Server + "/" + database + "?driver=SQL+Server+Native+Client+11.0"
 
 def SingleFrom(tName, data, pkDic, cnxn, datatypeDic, fkDic):
 	
