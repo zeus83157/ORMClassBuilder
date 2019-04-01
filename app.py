@@ -129,9 +129,10 @@ def BuildORMClass():
 					FROM sys.foreign_keys AS f INNER \
 					JOIN sys.foreign_key_columns AS fc ON f.object_id = fc.constraint_object_id)")
 	rows = cursor.fetchall()
-	tmprows = rows
+	tmprows = []
 	for row in rows:
 		data = SingleFrom(row.TABLE_NAME, data, pkDic, cnxn, datatypeDic, fkDic)
+		tmprows.append(row.TABLE_NAME)
 
 
 
@@ -151,12 +152,19 @@ def BuildORMClass():
 			tmpRTDic[row.table_name].append(row.referenced_object)
 		else:
 			tmpRTDic[row.table_name] = [row.referenced_object, ]
-	print(tmpRTDic)
-	# while len(tmprows) > 0:
-	# 	for row in rows:
-	# 		if row is in tmprows:
-	# 			data = SingleFrom(row.TABLE_NAME, data, pkDic, cnxn, datatypeDic, fkDic)
-	# 			tmprows.remove(row)
+	
+	while len(list(tmpRTDic.keys())) > 0:
+
+		for item in list(tmpRTDic.keys()):
+			status = True
+			for item2 in tmpRTDic[item]:
+				if not item2 in tmprows:
+					status = False
+					break
+			if status == True:
+				data = SingleFrom(item, data, pkDic, cnxn, datatypeDic, fkDic)
+				tmprows.append(item)
+				tmpRTDic.pop(item, None)
 
 
 
