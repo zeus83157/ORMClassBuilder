@@ -7,6 +7,68 @@ password = "8021"
 database = "ResearchData"
 engine = "mssql+pyodbc://8021:8021@DESKTOP-OON9QKV/ResearchData?driver=SQL+Server+Native+Client+11.0"
 
+def SingleFrom(tName, data, pkDic, cnxn, datatypeDic, fkDic):
+	
+	if tName != "sysdiagrams":
+
+		pkColumn = pkDic[tName]
+
+		data = data + "\n\n#{0} Table".format(tName)
+		tmp = "{0}_metadata".format(tName.lower())
+		data = data + "\n{0} = MetaData()".format(tmp)
+		data = data + "\n\n{0} = Table('{1}', {2}, ".format(tName.lower(), tName, tmp)
+
+		cursor = cnxn.cursor()
+		cursor.execute("SELECT * FROM Information_Schema.COLUMNS WHERE TABLE_NAME = '" + tName + "'")
+		rows2 = cursor.fetchall()
+		
+
+		for row2 in rows2:
+			data = data + "\n			Column('{0}',".format(row2.COLUMN_NAME)
+			
+			data = data + " " + datatypeDic[row2.DATA_TYPE]
+			if row2.DATA_TYPE == "decimal":
+				data = data + "({0}, {1})".format(row2.NUMERIC_PRECISION_RADIX, row2.NUMERIC_SCALE)
+
+			if row2.DATA_TYPE == "nvarchar":
+				data = data + "({0})".format(row2.CHARACTER_MAXIMUM_LENGTH)
+
+			data = data + ","
+
+			if row2.COLUMN_NAME == pkColumn:
+				data = data + " primary_key = True,"
+
+			if tName + row2.COLUMN_NAME in list(fkDic.keys()):
+				fkTmp = fkDic[tName + row2.COLUMN_NAME]
+				data = data + " ForeignKey({0}.{1}),".format(fkTmp[0],fkTmp[1])
+
+			if row2.IS_NULLABLE == "NO":
+				data = data + " nullable = False"
+
+
+
+
+
+			data = data + "),"
+		data = data + "\n			)"
+
+
+		data = data + "\n\nclass {0}(object):".format(tName)
+
+		data = data + "\n	def __init__(self,"
+		for row2 in rows2:
+			data = data + " {0},".format(row2.COLUMN_NAME)
+		data = data + "):"
+
+
+		for row2 in rows2:
+			data = data + "\n		self.{0} = {0}".format(row2.COLUMN_NAME)
+
+		data = data + "\n\nmapper({0}, {1})".format(tName, tName.lower())
+
+		data = data + "\n\n\n\n"
+	return data
+
 def BuildORMClass():
 
 	datatypeDic = {
@@ -62,69 +124,41 @@ def BuildORMClass():
 
 
 
-	cursor.execute("SELECT distinct(TABLE_NAME) FROM Information_Schema.COLUMNS")
+	cursor.execute("SELECT distinct(TABLE_NAME) FROM Information_Schema.COLUMNS where TABLE_NAME not in\
+					(SELECT OBJECT_NAME(f.parent_object_id) AS table_name \
+					FROM sys.foreign_keys AS f INNER \
+					JOIN sys.foreign_key_columns AS fc ON f.object_id = fc.constraint_object_id)")
 	rows = cursor.fetchall()
-	
-
+	tmprows = rows
 	for row in rows:
-		if row.TABLE_NAME != "sysdiagrams":
-
-			pkColumn = pkDic[row.TABLE_NAME]
-
-			data = data + "\n\n#{0} Table".format(row.TABLE_NAME)
-			tmp = "{0}_metadata".format(row.TABLE_NAME.lower())
-			data = data + "\n{0} = MetaData()".format(tmp)
-			data = data + "\n\n{0} = Table('{1}', {2}, ".format(row.TABLE_NAME.lower(), row.TABLE_NAME, tmp)
-
-			cursor = cnxn.cursor()
-			cursor.execute("SELECT * FROM Information_Schema.COLUMNS WHERE TABLE_NAME = '" + row.TABLE_NAME + "'")
-			rows2 = cursor.fetchall()
-			
-
-			for row2 in rows2:
-				data = data + "\n			Column('{0}',".format(row2.COLUMN_NAME)
-				
-				data = data + " " + datatypeDic[row2.DATA_TYPE]
-				if row2.DATA_TYPE == "decimal":
-					data = data + "({0}, {1})".format(row2.NUMERIC_PRECISION_RADIX, row2.NUMERIC_SCALE)
-
-				if row2.DATA_TYPE == "nvarchar":
-					data = data + "({0})".format(row2.CHARACTER_MAXIMUM_LENGTH)
-
-				data = data + ","
-
-				if row2.COLUMN_NAME == pkColumn:
-					data = data + " primary_key = True,"
-
-				if row.TABLE_NAME + row2.COLUMN_NAME in list(fkDic.keys()):
-					fkTmp = fkDic[row.TABLE_NAME + row2.COLUMN_NAME]
-					data = data + " ForeignKey({0}.{1}),".format(fkTmp[0],fkTmp[1])
-
-				if row2.IS_NULLABLE == "NO":
-					data = data + " nullable = False"
+		data = SingleFrom(row.TABLE_NAME, data, pkDic, cnxn, datatypeDic, fkDic)
 
 
 
 
+	cursor.execute("SELECT OBJECT_NAME(f.parent_object_id) AS table_name, OBJECT_NAME (f.referenced_object_id) AS referenced_object\
+					FROM sys.foreign_keys AS f INNER JOIN sys.foreign_key_columns AS fc ON f.object_id = fc.constraint_object_id\
+					WHERE OBJECT_NAME(f.parent_object_id) in\
+					(SELECT distinct(TABLE_NAME) FROM Information_Schema.COLUMNS where TABLE_NAME in\
+					(SELECT OBJECT_NAME(f.parent_object_id) AS table_name \
+					FROM sys.foreign_keys AS f INNER \
+					JOIN sys.foreign_key_columns AS fc ON f.object_id = fc.constraint_object_id))")
+	rows = cursor.fetchall()
 
-				data = data + "),"
-			data = data + "\n			)"
+	tmpRTDic = {}
+	for row in rows:
+		if row.table_name in list(tmpRTDic.keys()):
+			tmpRTDic[row.table_name].append(row.referenced_object)
+		else:
+			tmpRTDic[row.table_name] = [row.referenced_object, ]
+	print(tmpRTDic)
+	# while len(tmprows) > 0:
+	# 	for row in rows:
+	# 		if row is in tmprows:
+	# 			data = SingleFrom(row.TABLE_NAME, data, pkDic, cnxn, datatypeDic, fkDic)
+	# 			tmprows.remove(row)
 
 
-			data = data + "\n\nclass {0}(object):".format(row.TABLE_NAME)
-
-			data = data + "\n	def __init__(self,"
-			for row2 in rows2:
-				data = data + " {0},".format(row2.COLUMN_NAME)
-			data = data + "):"
-
-
-			for row2 in rows2:
-				data = data + "\n		self.{0} = {0}".format(row2.COLUMN_NAME)
-
-			data = data + "\n\nmapper({0}, {1})".format(row.TABLE_NAME, row.TABLE_NAME.lower())
-
-			data = data + "\n\n\n\n"
 
 	cnxn.close()
 
