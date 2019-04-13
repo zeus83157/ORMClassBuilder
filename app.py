@@ -80,7 +80,7 @@ def BuildORMClass():
 	}
 
 
-	data = "from sqlalchemy import create_engine"\
+	data = "from sqlalchemy import create_engine, func"\
 	+ "\nfrom sqlalchemy.ext.declarative import declarative_base"\
 	+ "\nfrom sqlalchemy.dialects.mssql import \\"\
 	+ "\n	BIGINT, BINARY, BIT, CHAR, DATE, DATETIME, DATETIME2, \\"\
