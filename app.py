@@ -1,11 +1,11 @@
 import pyodbc
 import os
 
-Server = "DESKTOP-OON9QKV"
-user = "8021"
-password = "8021"
-database = "ResearchData"
-engine = "mssql+pyodbc://" + user + ":" + password + "@" + Server + "/" + database + "?driver=SQL+Server+Native+Client+11.0"
+Server = "<host>"
+user = "<user>"
+password = "<password>"
+database = "<database>"
+engine = "mssql+pyodbc://" + user + ":" + password + "@" + Server + "/" + database + "?driver={ODBC Driver 17 for SQL Server}"
 
 def SingleFrom(tName, data, pkDic, cnxn, datatypeDic, fkDic):
 	
@@ -95,10 +95,10 @@ def BuildORMClass():
 	data = data + "\n\nengine = create_engine('{0}')".format(engine)
 	data = data + "\n\nBase = declarative_base()"
 
+	conn_str = "Driver={ODBC Driver 17 for SQL Server};Server="+ Server + ";Database=" + database + ";Uid=" + user + ";Pwd=" + password + ";Encrypt=yes;TrustServerCertificate=yes;Connection Timeout=20;"
+	
 
-
-
-	cnxn = pyodbc.connect("DRIVER={SQL Server}; SERVER=" + Server + "; DATABASE=" + database + "; UID=" + user + "; PWD=" + password)
+	cnxn = pyodbc.connect(conn_str)
 	cursor = cnxn.cursor()
 
 
@@ -178,7 +178,7 @@ def BuildORMClass():
 
 
 
-	fp = open("DatabaseBuilder.py", "w", encoding = "utf-8")
+	fp = open("DatabaseBuilder.py", "w")
 	fp.write(data)
 	fp.close()
 
