@@ -1,11 +1,12 @@
 import pyodbc
 import os
 
-Server = "<host>"
-user = "<user>"
+server = "<host>"
+user = "<username>"
 password = "<password>"
 database = "<database>"
-engine = "mssql+pyodbc://" + user + ":" + password + "@" + Server + "/" + database + "?driver={ODBC Driver 17 for SQL Server}"
+driver = "{ODBC Driver 17 for SQL Server}"
+engine = "mssql+pyodbc:///?odbc_connect=\" + urllib.quote_plus(\"" + "DRIVER=" + driver + ";SERVER=" + server + ";DATABASE=" + database + ";UID=" + user + ";PWD=" + password
 
 def SingleFrom(tName, data, pkDic, cnxn, datatypeDic, fkDic):
 	
@@ -90,12 +91,13 @@ def BuildORMClass():
 	+ "\n	TIMESTAMP, TINYINT, UNIQUEIDENTIFIER, VARBINARY, VARCHAR"\
 	+ "\nfrom sqlalchemy import Table, MetaData, Column, Integer, String, ForeignKey, Sequence"\
 	+ "\nfrom sqlalchemy.orm import mapper"\
-	+ "\nfrom sqlalchemy.orm import sessionmaker"
+	+ "\nfrom sqlalchemy.orm import sessionmaker"\
+	+ "\nimport urllib"
 
-	data = data + "\n\nengine = create_engine('{0}')".format(engine)
+	data = data + "\n\nengine = create_engine(\"{0}\"))".format(engine)
 	data = data + "\n\nBase = declarative_base()"
 
-	conn_str = "Driver={ODBC Driver 17 for SQL Server};Server="+ Server + ";Database=" + database + ";Uid=" + user + ";Pwd=" + password + ";Encrypt=yes;TrustServerCertificate=yes;Connection Timeout=20;"
+	conn_str = "Driver=" + driver + ";Server="+ server + ";Database=" + database + ";Uid=" + user + ";Pwd=" + password + ";Encrypt=yes;TrustServerCertificate=yes;Connection Timeout=20;"
 	
 
 	cnxn = pyodbc.connect(conn_str)
